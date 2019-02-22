@@ -207,6 +207,7 @@ class ConvLSTM(nn.Module):
 
         return outputs, (x, new_c)
 
+
 class Seq2Seg(nn.Module):
     def __init__(self, dim, ndf, dil):
         super(Seq2Seg, self).__init__()

@@ -1,22 +1,15 @@
 
-from __future__ import print_function
 import argparse
 import os
-import random
-import time
-import math
-import numpy as np
+import sys
+import datetime
+import numpy
+
 import torch
-import torch.nn as nn
-import torch.backends.cudnn as cudnn
-import torch.optim as optim
-import torch.utils.data
-import torchvision.datasets as dsets
-import torchvision.transforms as transforms
-from torch.autograd import Variable
-from torch.nn.init import xavier_uniform_, zeros_
+import torchvision
+
 #from logger import Logger
-import model, utils
+import model, utils, opt
 
 # hard-wire the gpu id
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
@@ -27,41 +20,70 @@ parser.add_argument('--manualSeed', type=int, help='manual seed')
 parser.add_argument('--cuda', default=1, action='store_true', help='enables cuda')
 parser.add_argument('--ndf', type=int, default=8, help='num of channels in conv layers')
 parser.add_argument('--dilation', type=int, default=1, help='dilation value for bottleneck convolutions')
-parser.add_argument('--batch_size', type=int, default=8, help='size of batch')
+parser.add_argument('--batch_size', type=int, default=2, help='size of batch')
+parser.add_argument('--seed', type=int, default=1337, help="Fixed manual seed, zero means no seeding.")
+#training
+parser.add_argument('--epochs', type=int, default=10, help="number of epochs")
+parser.add_argument('--lr', type=float, default=0.0002, help='Optimization Learning Rate.')
+#optimizer
+parser.add_argument('--optimizer', type=str, default="adam", help='The optimizer that will be used during training.')
+parser.add_argument('--momentum', type=float, default=0.9, help='Optimization Momentum.')
+parser.add_argument('--momentum2', type=float, default=0.999, help='Optimization Second Momentum (optional, only used by some optimizers).')
+parser.add_argument('--epsilon', type=float, default=1e-8, help='Optimization Epsilon (optional, only used by some optimizers).')
+parser.add_argument('--weight_decay', type=float, default=0, help='Optimization Weight Decay.')
+parser.add_argument("--opt_state", type = str, help = "Path to stored optimizer state file (for continuing training)")
 #data
-parser.add_argument('--root', type=str, default='../data/samples', help='path to dataset')
+parser.add_argument('--train_path', type=str, help='path to training data')
 parser.add_argument('--json', type=str, default='../data_handler/dataset.json', help='path to dataset json')
 #image
 parser.add_argument('--crop_size', type=int, default=512, help='Input dimension (e.g. 512x512)')
 
-opt = parser.parse_args()
-print(opt)
+args = parser.parse_args()
+#print(args)
 
-if opt.manualSeed is None:
-    opt.manualSeed = random.randint(1, 10000)
-print("Random Seed: ", opt.manualSeed)
-random.seed(opt.manualSeed)
-torch.manual_seed(opt.manualSeed)
+device = torch.device("cuda:0" if args.cuda else "cpu")
 
-cudnn.benchmark = True
-
-device = torch.device("cuda:0" if opt.cuda else "cpu")
-
-ndf = opt.ndf
+ndf = args.ndf
 
 if __name__ == '__main__':
 
-    sor3d = utils.SOR3D(opt.root, opt.json)
+    print("{} | Torch Version: {}".format(datetime.datetime.now(), torch.__version__))
+    if args.seed > 0:
+        print("Set to reproducibility mode with seed: {}".format(args.seed))    
+        torch.manual_seed(args.seed)
+        numpy.random.seed(args.seed)        
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
 
-    for i in range(len(sor3d)):
-        sample, class_id = sor3d[i]
+    train_data_params = utils.data_loader_params(root_path = args.train_path) 
+    train_data_iterator = utils.data_loader(train_data_params)
+    
+    train_set = torch.utils.data.DataLoader(train_data_iterator,\
+        batch_size = args.batch_size, shuffle=True,\
+        num_workers = args.batch_size, pin_memory=False)
+    
+    seq2seg = model.Seq2Seg(args.crop_size, args.ndf, args.dilation).to(device)
 
-    #TODO: prepare batches from data loader
+    # create and init optimizer
+    opt_params = opt.OptimizerParameters(learning_rate=args.lr, momentum=args.momentum,\
+        momentum2=args.momentum2, epsilon=args.epsilon)
+    optimizer = opt.get_optimizer(args.optimizer, seq2seg.parameters(), opt_params)
+
+    if args.opt_state is not None:
+        opt_state = torch.load(args.opt_state)
+        print("Loading previously saved optimizer state from {}".format(args.opt_state))
+        optimizer.load_state_dict(opt_state["optimizer_state_dict"]) 
         
-    seq2seg = model.Seq2Seg(opt.crop_size, opt.ndf, opt.dilation).to(device)
+    
     #TODO: prepare train routine
 
-    input = Variable(torch.randn(opt.batch_size, 3, opt.crop_size, opt.crop_size)).cuda()
-    out = seq2seg.forward(input)
-    print(out.size())
+    seq2seg.train()
+    for epoch in range(args.epochs):
+        print("Training | Epoch: {}".format(epoch))
+        opt.adjust_learning_rate(optimizer, epoch)
+        for batch_id, batch in enumerate(train_set):
+            optimizer.zero_grad()
+            for frame in batch:
+                out = seq2seg.forward(batch[frame]["color"].to(device))
+
 
