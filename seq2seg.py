@@ -1,50 +1,6 @@
 import torch
 import torch.nn as nn
-from torch.autograd import Variable
-from torch.nn.init import xavier_uniform_, zeros_
-
-def conv(in_channels, out_channels, kernel, pad, dil):
-    return nn.Sequential(
-        nn.Conv2d(in_channels, out_channels, kernel_size=kernel, stride=1, padding=pad),
-        nn.ELU(True)
-    )
-
-def conv_downsample(in_channels, out_channels):
-    return nn.Sequential(
-        nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=2, padding=1),
-        nn.ELU(True)
-    )
-
-def conv_seg(in_channels, out_channels):
-    return nn.Sequential(
-        nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1),
-        nn.Sigmoid()
-    )
-
-def conv_1x1(in_channels, out_channels):
-    return nn.Sequential(
-        nn.Conv2d(in_channels, out_channels, 1, stride=1, padding=0),
-        nn.ELU(True)
-    )
-
-
-class Interpolate(nn.Module):
-    def __init__(self, size, mode):
-        super(Interpolate, self).__init__()
-        """
-        Args:
-            size: expected size after interpolation
-            mode: interpolation type (e.g. bilinear, nearest)
-        """
-        self.interp = nn.functional.interpolate
-        self.size = size
-        self.mode = mode
-        
-    def forward(self, x):
-        out = self.interp(x, size=self.size, mode=self.mode, align_corners=False)
-        
-        return out
-
+from model_utils import *
 
 class Encoder(nn.Module):
     def __init__(self, ndf, dil):
@@ -55,24 +11,32 @@ class Encoder(nn.Module):
 
         self.conv1 = conv(3, self.ndf, kernel=7, pad=3, dil=1)
         self.conv2 = conv(self.ndf, self.ndf, kernel=5, pad=2, dil=1)
-        self.conv3 = conv_downsample(self.ndf, self.ndf * 2)
+        self.pool1 = maxpool(kernel=2, stride=2)
+        self.conv3 = conv(self.ndf, self.ndf * 2, kernel=3, pad=1, dil=self.dil)
         self.conv4 = conv(self.ndf * 2, self.ndf * 2, kernel=3, pad=1, dil=self.dil)
         self.conv5 = conv(self.ndf * 2, self.ndf * 2, kernel=3, pad=1, dil=self.dil)
-        self.conv6 = conv_downsample(self.ndf * 2, self.ndf * 4)
+        self.pool2 = maxpool(kernel=2, stride=2)
+        self.conv6 = conv(self.ndf * 4, self.ndf * 4, kernel=3, pad=1, dil=self.dil)
         self.conv7 = conv(self.ndf * 4, self.ndf * 4, kernel=3, pad=1, dil=self.dil)
         self.conv8 = conv(self.ndf * 4, self.ndf * 4, kernel=3, pad=1, dil=self.dil)
-        self.conv9 = conv_downsample(self.ndf * 4, self.ndf * 8)
+        self.pool3 = maxpool(kernel=2, stride=2)
+        self.conv9 = conv(self.ndf * 4, self.ndf * 8, kernel=3, pad=1, dil=self.dil)
+        self.conv10 = conv(self.ndf * 8, self.ndf * 8, kernel=3, pad=1, dil=self.dil)
 
     def forward(self, x):
-        out = self.conv1(x);
-        out_pre_ds_1 = self.conv2(out);
-        out = self.conv3(out);
-        out = self.conv4(out);
-        out_pre_ds_2 = self.conv5(out);
-        out = self.conv6(out);
-        out = self.conv7(out);
-        out_pre_ds_3 = self.conv8(out);
-        out = self.conv9(out);
+        out = self.conv1(x)
+        out = self.conv2(x)
+        out_pre_ds_1 = self.pool1(out)
+        out = self.conv3(out_pre_ds_1)
+        out = self.conv4(out)
+        out = self.conv5(out)
+        out_pre_ds_2 = self.pool2(out)
+        out = self.conv6(out_pre_ds_2)
+        out = self.conv7(out)
+        out = self.conv8(out)
+        out_pre_ds_3 = self.pool3(out)
+        out = self.conv9(out_pre_ds_3)
+        out = self.conv10(out)
 
         return out_pre_ds_1, out_pre_ds_2, out_pre_ds_3, out
 
@@ -84,39 +48,49 @@ class Decoder(nn.Module):
         self.dim = dim
         self.ndf = ndf
 
+        self.tconv10 = conv(self.ndf * 8, self.ndf * 4, kernel=3, pad=1, dil=1)
+        self.tconv9 = conv(self.ndf * 8, self.ndf * 4, kernel=3, pad=1, dil=1)
         self.upsample3 = Interpolate(size=(dim // 4, dim // 4), mode='bilinear')
-        self.tconv8 = conv(self.ndf * 8, self.ndf * 4, kernel=3, pad=1, dil=1)
+        self.tconv_up3 = conv(self.ndf * 8, self.ndf * 4, kernel=3, pad=1, dil=1)
         self.conv1x1_3 = conv_1x1(self.ndf * 8, self.ndf * 4)
+        self.tconv8 = conv(self.ndf * 4, self.ndf * 4, kernel=3, pad=1, dil=1)
         self.tconv7 = conv(self.ndf * 4, self.ndf * 4, kernel=3, pad=1, dil=1)
         self.tconv6 = conv(self.ndf * 4, self.ndf * 4, kernel=3, pad=1, dil=1)
         self.upsample2 = Interpolate(size=(dim // 2, dim // 2), mode='bilinear')
-        self.tconv5 = conv(self.ndf * 4, self.ndf * 2, kernel=3, pad=1, dil=1)
+        self.tconv_up2 = conv(self.ndf * 4, self.ndf * 2, kernel=3, pad=1, dil=1)
         self.conv1x1_2 = conv_1x1(self.ndf * 4, self.ndf * 2)
+        self.tconv5 = conv(self.ndf * 2, self.ndf * 2, kernel=3, pad=1, dil=1)
         self.tconv4 = conv(self.ndf * 2, self.ndf * 2, kernel=3, pad=1, dil=1)
         self.tconv3 = conv(self.ndf * 2, self.ndf * 2, kernel=3, pad=1, dil=1)
         self.upsample1 = Interpolate(size=(dim, dim), mode='bilinear')
-        self.tconv2 = conv(self.ndf * 2, self.ndf, kernel=3, pad=1, dil=1)
+        self.tconv_up1 = conv(self.ndf * 2, self.ndf, kernel=3, pad=1, dil=1)
         self.conv1x1_1 = conv_1x1(self.ndf * 2, self.ndf)
+        self.tconv2 = conv(self.ndf, self.ndf, kernel=3, pad=1, dil=1)
         self.tconv1 = conv_seg(self.ndf, 9)
 
 
     def forward(self, x):
-        out = self.upsample3(x[3])
-        out = self.tconv8(out)
+        out = self.tconv10(x[3])
+        out = self.tconv9(out)
+        out = self.upsample3(out)
+        out = self.tconv_up3(out)
         out_cat3 = torch.cat((out, x[2]), 1)
         out = self.conv1x1_3(out_cat3)
+        out = self.tconv8(out)
         out = self.tconv7(out)
         out = self.tconv6(out)
         out = self.upsample2(out)
-        out = self.tconv5(out)
+        out = self.tconv_up2(out)
         out_cat2 = torch.cat((out, x[1]), 1)
         out = self.conv1x1_2(out_cat2)
+        out = self.tconv5(out)
         out = self.tconv4(out)
         out = self.tconv3(out)
         out = self.upsample1(out)
-        out = self.tconv2(out)
+        out = self.tconv_up1(out)
         out_cat1 = torch.cat((out, x[0]), 1)
         out = self.conv1x1_1(out_cat1)
+        out = self.tconv2(out)
         out = self.tconv1(out)
 
         return out
