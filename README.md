@@ -1,5 +1,5 @@
-## A Deep Learning Approach To Oject Affordance Segmentation
-This repo contains code and data samples from our paper "A Deep Learning Approach To Oject Affordance Segmentation" (to appear in [ICASSP 2020](https://2020.ieeeicassp.org/)). 
+## A Deep Learning Approach To Object Affordance Segmentation
+This repo contains code and data samples from our paper "A Deep Learning Approach To Object Affordance Segmentation" (to appear in [ICASSP 2020](https://2020.ieeeicassp.org/)). 
 
 ## Model Overview
 
@@ -36,7 +36,7 @@ If you use any code or model from this repo, please cite the following:
 ```
 @inproceedings{thermos2020affordance,
   author       = "Spyridon Thermos and Petros Daras and Gerasimos Potamianos",
-  title        = "A Deep Learning Approach To Oject Affordance Segmentation",
+  title        = "A Deep Learning Approach To Object Affordance Segmentation",
   booktitle    = "Proc. International Conference on Acoustics Speech and Signal Processing (ICASSP)",
   year         = "2020"
 }
