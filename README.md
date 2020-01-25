@@ -1,5 +1,5 @@
 ## A Deep Learning Approach To Oject Affordance Segmentation
-Code and samples of the ICASSP "A Deep Learning Approach To Oject Affordance Segmentation" paper are provided in this repo. 
+This repo contains code and data samples from our paper "A Deep Learning Approach To Oject Affordance Segmentation" (to appear in [ICASSP 2020](https://2020.ieeeicassp.org/)). 
 
 ## Model Overview
 
@@ -7,9 +7,9 @@ Code and samples of the ICASSP "A Deep Learning Approach To Oject Affordance Seg
 
 ## Prerequisites
 The following are the minimum requirements to replicate the paper experiments:
-- Python 3.7
+- Python 3.7.2
 - PyTorch 1.0.1
-- CUDA 9.0
+- CUDA 9.1
 - Visdom (follow the steps [here](https://github.com/facebookresearch/visdom))
 
 ## SOR3D-AFF samples
@@ -25,6 +25,11 @@ The following are the minimum requirements to replicate the paper experiments:
 
 ### Segmentation masks - Last frame only (512x424)
 ![seg_mask](./sor3d-aff_samples/seg_mask.png)
+
+## Train
+**ToDo**
+## Test
+**ToDo**
 
 # Citation
 If you use any code or model from this repo, please cite the following:
