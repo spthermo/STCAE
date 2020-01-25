@@ -3,6 +3,8 @@ Code and samples of the ICASSP "A Deep Learning Approach To Oject Affordance Seg
 
 ## Model Overview
 
+![concept](./sor3d-aff_samples/concept.png)
+
 ## Prerequisites
 The following are the minimum requirements to replicate the paper experiments:
 - Python 3.7
