@@ -13,15 +13,15 @@ The following are the minimum requirements to replicate the paper experiments:
 ## SOR3D-AFF samples
 
 RGB - original resolution (1920x1080)
-
 ![rgb_full](./sor3d-aff_samples/rgb_full.png)
 
 RGB - aligned with depth maps (512x424)
-
+![rgb_aligned](./sor3d-aff_samples/rgb_aligned.png)
 
 Segmentation masks - Last frame only (512x424)
-
+![seg_mask](./sor3d-aff_samples/seg_mask.png)
 
 3D optical flow - after preprocessing (300x300)
+![3Dflow](./sor3d-aff_samples/3Dflow.png)
 
 
