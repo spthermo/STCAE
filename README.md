@@ -14,7 +14,7 @@ The following are the minimum requirements to replicate the paper experiments:
 
 RGB - original resolution (1920x1080)
 
-![rgb_full](./sor3d-aff samples/rgb_full.png)
+![rgb_full](./sor3d-aff_samples/rgb_full.png)
 
 RGB - aligned with depth maps (512x424)
 
