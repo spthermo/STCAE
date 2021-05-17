@@ -1,9 +1,5 @@
 ## A Deep Learning Approach To Object Affordance Segmentation
-This repo contains code and data samples from our paper "A Deep Learning Approach To Object Affordance Segmentation" (to appear in [ICASSP 2020](https://2020.ieeeicassp.org/)). 
-
-## Model Overview
-
-![concept](./sor3d-aff_samples/concept.png)
+This repo contains code and data samples from our encoder-decoder model, discussed in "A Deep Learning Approach To Object Affordance Segmentation" [ICASSP](https://2020.ieeeicassp.org/), 2020, and extended in a journal that is under review in IEEE Access. 
 
 ## Prerequisites
 The following are the minimum requirements to replicate the paper experiments:
@@ -27,9 +23,9 @@ The following are the minimum requirements to replicate the paper experiments:
 ![seg_mask](./sor3d-aff_samples/seg_mask.png)
 
 ## Train
-**ToDo**
-## Test
-**ToDo**
+``
+python train.py --train_path path/to/dataset
+``
 
 # Citation
 If you use any code or model from this repo, please cite the following:
